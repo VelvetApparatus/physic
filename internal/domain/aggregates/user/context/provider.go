@@ -4,8 +4,8 @@ import "go.uber.org/fx"
 
 func ProvideUserContext() fx.Option {
 	return fx.Module(
-		"user-context",
-		fx.Provide(
+		"user-context-fabric",
+		fx.Invoke(
 			InitUserContextFabric,
 		),
 	)

@@ -9,6 +9,10 @@ type Router struct {
 	ctrl *controller.Controller
 }
 
+func NewRouter(ctrl *controller.Controller) *Router {
+	return &Router{ctrl: ctrl}
+}
+
 func (r *Router) MapRoutes(
 	group fiber.Router,
 ) {
