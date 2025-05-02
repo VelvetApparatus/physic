@@ -6,6 +6,9 @@ var (
 	LoginNotUniqueError    = newUserError("login not unique")
 	EmailNotUniqueError    = newUserError("email not unique")
 	InvalidUserRoleError   = newUserError("invalid user role")
+	InvalidUserLoginError  = newUserError("invalid user login")
+	InvalidUserEmailError  = newUserError("invalid email")
+	InvalidUsernameError   = newUserError("invalid username")
 )
 
 type UserError struct {

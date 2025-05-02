@@ -8,16 +8,15 @@ import (
 	userErrors "physk/internal/domain/aggregates/user/errors"
 	"physk/internal/domain/aggregates/user/rules"
 	vo "physk/internal/domain/aggregates/user/value_objects"
-	"physk/pkg/hasher"
 )
 
 type User struct {
 	ID           uuid.UUID
 	Role         vo.UserRole
-	Login        string
-	PasswordHash string
-	Username     string
-	Email        string
+	Login        vo.UserLogin
+	PasswordHash vo.UserPasswordHash
+	Username     vo.UserName
+	Email        vo.UserEmail
 }
 
 func GetUser(
@@ -25,16 +24,33 @@ func GetUser(
 	dto userDto.GetUserDTO,
 ) (User, error) {
 
-	// todo: validate too ?
-	// i think -- yes
+	login, valid := vo.ParseLogin(dto.Login)
+	if !valid {
+		return User{}, userErrors.InvalidUserLoginError
+	}
+
+	userRole, valid := vo.ParseUserRole(dto.Role)
+	if !valid {
+		return User{}, userErrors.InvalidUserRoleError
+	}
+
+	email, valid := vo.ParseEmail(dto.Email)
+	if !valid {
+		return User{}, userErrors.InvalidUserEmailError
+	}
+
+	name, valid := vo.ParseUsername(dto.Username)
+	if !valid {
+		return User{}, userErrors.InvalidUsernameError
+	}
 
 	aggregate := User{
 		ID:           dto.ID,
-		Role:         dto.Role,
-		Login:        dto.Login,
-		PasswordHash: dto.PasswordHash,
-		Username:     dto.Username,
-		Email:        dto.Email,
+		Role:         userRole,
+		Login:        login,
+		PasswordHash: vo.UserPasswordHash(dto.PasswordHash),
+		Username:     name,
+		Email:        email,
 	}
 
 	return aggregate, nil
@@ -44,19 +60,10 @@ func CreateUser(
 	ctx context.UserCtx,
 	dto userDto.CreateUserDTO,
 ) (User, error) {
-	err := rules.CheckLoginUniqueness(ctx, dto.Login)
-	if err != nil {
-		return User{}, fmt.Errorf("check login uniqueness: %w", err)
-	}
 
-	err = rules.CheckEmailUniqueness(ctx, dto.Email)
-	if err != nil {
-		return User{}, fmt.Errorf("check email uniquenes: %w", err)
-	}
-
-	err = rules.CheckUsernameUniqueness(ctx, dto.Username)
-	if err != nil {
-		return User{}, fmt.Errorf("check username uniqueness: %w", err)
+	login, valid := vo.ParseLogin(dto.Login)
+	if !valid {
+		return User{}, userErrors.InvalidUserLoginError
 	}
 
 	userRole, valid := vo.ParseUserRole(dto.Role)
@@ -64,18 +71,43 @@ func CreateUser(
 		return User{}, userErrors.InvalidUserRoleError
 	}
 
-	passwordHash, err := hasher.HashString(dto.Password)
+	passwordHash, valid := vo.ParsePassword(dto.Password)
+	if !valid {
+		return User{}, userErrors.InvalidPasswordError
+	}
+
+	email, valid := vo.ParseEmail(dto.Email)
+	if !valid {
+		return User{}, userErrors.InvalidUserEmailError
+	}
+
+	name, valid := vo.ParseUsername(dto.Username)
+	if !valid {
+		return User{}, userErrors.InvalidUsernameError
+	}
+
+	err := rules.CheckLoginUniqueness(ctx, login)
 	if err != nil {
-		return User{}, fmt.Errorf("hash password: %w", err)
+		return User{}, fmt.Errorf("check login uniqueness: %w", err)
+	}
+
+	err = rules.CheckEmailUniqueness(ctx, email)
+	if err != nil {
+		return User{}, fmt.Errorf("check email uniquenes: %w", err)
+	}
+
+	err = rules.CheckUsernameUniqueness(ctx, name)
+	if err != nil {
+		return User{}, fmt.Errorf("check username uniqueness: %w", err)
 	}
 
 	user := User{
 		ID:           uuid.New(),
 		Role:         userRole,
-		Login:        dto.Login,
+		Login:        login,
 		PasswordHash: passwordHash,
-		Username:     dto.Username,
-		Email:        dto.Email,
+		Username:     name,
+		Email:        email,
 	}
 
 	return user, nil
@@ -85,7 +117,7 @@ func CreateUser(
 func (u *User) MatchPassword(
 	pass string,
 ) error {
-	_, err := rules.ComparePasswordAndHash(pass, u.PasswordHash)
+	_, err := rules.ComparePasswordAndHash(pass, u.PasswordHash.String())
 	if err != nil {
 		return fmt.Errorf("compare password and hash: %w", err)
 	}
@@ -96,9 +128,10 @@ func (u *User) MatchPassword(
 func (u *User) ChangePassword(
 	newPass string,
 ) error {
-	hash, err := rules.ComparePasswordAndHash(newPass, u.PasswordHash)
-	if err != nil {
-		return fmt.Errorf("compare password and hash: %w", err)
+
+	hash, valid := vo.ParsePassword(newPass)
+	if !valid {
+		return userErrors.InvalidPasswordError
 	}
 
 	u.PasswordHash = hash
@@ -109,11 +142,15 @@ func (u *User) ChangeLogin(
 	ctx context.UserCtx,
 	newLogin string,
 ) error {
-	err := rules.CheckLoginUniqueness(ctx, newLogin)
+	login, valid := vo.ParseLogin(newLogin)
+	if !valid {
+		return userErrors.InvalidUserLoginError
+	}
+	err := rules.CheckLoginUniqueness(ctx, login)
 	if err != nil {
 		return fmt.Errorf("check login uniqueness: %w", err)
 	}
-	u.Login = newLogin
+	u.Login = login
 
 	return nil
 }
@@ -122,11 +159,16 @@ func (u *User) ChangeUsername(
 	ctx context.UserCtx,
 	newUsername string,
 ) error {
-	err := rules.CheckUsernameUniqueness(ctx, newUsername)
+	username, valid := vo.ParseUsername(newUsername)
+	if !valid {
+		return userErrors.InvalidUsernameError
+	}
+
+	err := rules.CheckUsernameUniqueness(ctx, username)
 	if err != nil {
 		return fmt.Errorf("check username uniqueness: %w", err)
 	}
-	u.Username = newUsername
+	u.Username = username
 
 	return nil
 }
@@ -135,12 +177,17 @@ func (u *User) ChangeEmail(
 	ctx context.UserCtx,
 	newEmail string,
 ) error {
-	err := rules.CheckEmailUniqueness(ctx, newEmail)
+	email, valid := vo.ParseEmail(newEmail)
+	if !valid {
+		return userErrors.InvalidUserEmailError
+	}
+
+	err := rules.CheckEmailUniqueness(ctx, email)
 	if err != nil {
 		return fmt.Errorf("check email uniqiueness: %w", err)
 	}
 
-	u.Email = newEmail
+	u.Email = email
 
 	return nil
 }

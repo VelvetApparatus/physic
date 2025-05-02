@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"physk/internal/domain/aggregates/user/context"
 	userErrors "physk/internal/domain/aggregates/user/errors"
+	vo "physk/internal/domain/aggregates/user/value_objects"
 )
 
 func CheckUsernameUniqueness(
 	userCtx context.UserCtx,
-	username string,
+	username vo.UserName,
 ) error {
 	exists, err := userCtx.Repo.UsernameExists(userCtx, username)
 	if err != nil {
