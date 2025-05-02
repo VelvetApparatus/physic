@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"github.com/google/uuid"
 	"physk/internal/domain/aggregates/user"
 	"physk/internal/infrastructure/storage"
 )
@@ -12,6 +13,7 @@ type WriteModel interface {
 
 type ReadModel interface {
 	GetUserByLogin(ctx context.Context, login string) (user.User, error)
+	GetUserByID(ctx context.Context, userID uuid.UUID) (user.User, error)
 }
 
 type UseCase struct {

@@ -9,6 +9,8 @@ import (
 	userErrors "physk/internal/domain/aggregates/user/errors"
 	"physk/internal/infrastructure/delivery/dto"
 	"physk/internal/infrastructure/delivery/fiber/models"
+	tokenServ "physk/internal/services/token_service"
+	"strings"
 )
 
 func (r *Router) Register() fiber.Handler {
@@ -102,5 +104,50 @@ func (r *Router) Login() fiber.Handler {
 				slog.String("error", err.Error()),
 			)
 		}
+	}
+}
+
+func (r *Router) GetMe() fiber.Handler {
+	return func(fiberCtx *fiber.Ctx) {
+		ctx, cancel := context.WithCancel(fiberCtx.Context())
+		defer cancel()
+
+		parts := strings.Split(fiberCtx.Get("Authorization"), ": ")
+		if len(parts) != 2 {
+			fiberCtx.Status(fiber.StatusUnauthorized)
+		}
+
+		token := parts[1]
+
+		user, err := r.ctrl.GetMe(ctx, token)
+		if err != nil {
+			slog.LogAttrs(
+				ctx, slog.LevelError, "get-me",
+				slog.String("error", err.Error()),
+			)
+
+			// todo: do not catch errors from token service
+			if errors.Is(err, tokenServ.InvalidTokenError) {
+				fiberCtx.Status(fiber.StatusUnauthorized).SendString("invalid token")
+				return
+			}
+			fiberCtx.SendStatus(fiber.StatusInternalServerError)
+			return
+		}
+
+		response := dto.GetMeResponse{
+			ID:       user.ID,
+			Username: user.Username.String(),
+			Email:    user.Email.String(),
+			Role:     user.Role.String(),
+		}
+
+		err = fiberCtx.Status(fiber.StatusOK).JSON(response)
+		slog.LogAttrs(
+			ctx, slog.LevelError, "json response",
+			slog.String("error", err.Error()),
+			slog.Any("response", response),
+		)
+
 	}
 }

@@ -45,3 +45,10 @@ func (u UserLoginRequest) ToAggregateDTO() dto.LoginUserDTO {
 type UserLoginResponse struct {
 	Token string `json:"token"`
 }
+
+type GetMeResponse struct {
+	ID       uuid.UUID `json:"id"`
+	Username string    `json:"username"`
+	Email    string    `json:"email"`
+	Role     string    `json:"role"`
+}
