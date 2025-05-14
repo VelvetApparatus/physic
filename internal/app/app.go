@@ -8,6 +8,7 @@ import (
 	"physk/internal/config"
 	"physk/internal/controller"
 	userCtx "physk/internal/domain/aggregates/user/context"
+	"physk/internal/infrastructure"
 	"physk/internal/infrastructure/delivery/fiber"
 	"physk/internal/usecase"
 )
@@ -17,13 +18,15 @@ func App(ctx context.Context) {
 		fx.Supply(ctx),
 		fx.Invoke(config.Init),
 
-		userCtx.ProvideUserContext(),
+		infrastructure.ProvideModule(),
 
-		usecase.ProvideUseCases(),
+		userCtx.ProvideModule(),
 
-		controller.ProvideController(),
+		usecase.ProvideModule(),
 
-		fiber.ProvideRouter(),
+		controller.ProvideModule(),
+
+		fiber.ProvideModule(),
 	)
 
 	if err := app.Err(); err != nil {

@@ -17,9 +17,20 @@ func Init() error {
 
 type Config struct {
 	App AppSettings `envPrefix:"app_"`
+	Db  DBSettings  `envPrefix:"db_"`
 }
 
 type AppSettings struct {
 	Host string `env:"host"`
 	Port int    `env:"port"`
+}
+
+type DBSettings struct {
+	Host     string `env:"HOST"`
+	Port     int    `env:"PORT"`
+	User     string `env:"USER"`
+	Password string `env:"PASSWORD"`
+	Name     string `env:"NAME"`
+	SSLMode  string `env:"SSL_MODE"`
+	AppName  string `env:"APP_NAME"`
 }

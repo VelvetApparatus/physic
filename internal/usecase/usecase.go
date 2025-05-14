@@ -20,6 +20,10 @@ type UseCase struct {
 	s storage.Storage
 }
 
+func NewUseCase(st storage.Storage) *UseCase {
+	return &UseCase{s: st}
+}
+
 func (u *UseCase) Create(ctx context.Context, us user.User) error {
 	return u.s.CreateUser(ctx, us)
 }

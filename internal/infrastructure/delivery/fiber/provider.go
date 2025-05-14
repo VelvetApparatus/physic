@@ -2,7 +2,7 @@ package fiber
 
 import "go.uber.org/fx"
 
-func ProvideRouter() fx.Option {
+func ProvideModule() fx.Option {
 	return fx.Module(
 		"router",
 		fx.Provide(NewRouter),

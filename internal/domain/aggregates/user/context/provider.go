@@ -2,7 +2,7 @@ package context
 
 import "go.uber.org/fx"
 
-func ProvideUserContext() fx.Option {
+func ProvideModule() fx.Option {
 	return fx.Module(
 		"user-context-fabric",
 		fx.Invoke(

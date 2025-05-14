@@ -14,6 +14,10 @@ type pgImpl struct {
 	db *sql.DB
 }
 
+func NewStorage(db *sql.DB) storage.Storage {
+	return &pgImpl{db: db}
+}
+
 func (p *pgImpl) CreateUser(ctx context.Context, u user.User) error {
 	var (
 		query = `INSERT INTO user.users (id, role, login, password_hash, username, email) VALUES ($1, $2, $3, $4, $5, $6);`
