@@ -117,9 +117,12 @@ func (r *Router) GetMe() fiber.Handler {
 			fiberCtx.Status(fiber.StatusUnauthorized)
 		}
 
-		token := parts[1]
+		claims, ok := fiberCtx.Locals("claims").(tokenServ.Claims)
+		if !ok {
+			fiberCtx.SendStatus(fiber.StatusBadRequest)
+		}
 
-		user, err := r.ctrl.GetMe(ctx, token)
+		user, err := r.ctrl.GetMe(ctx, claims.UserID)
 		if err != nil {
 			slog.LogAttrs(
 				ctx, slog.LevelError, "get-me",

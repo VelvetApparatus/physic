@@ -5,7 +5,8 @@ import "go.uber.org/fx"
 func ProvideRouter() fx.Option {
 	return fx.Module(
 		"router",
-		fx.Invoke(NewRouter),
+		fx.Provide(NewRouter),
+		fx.Invoke(StartFiberRouter),
 	)
 
 }

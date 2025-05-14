@@ -1,1 +1,31 @@
 package mdws
+
+import (
+	"errors"
+	"github.com/gofiber/fiber"
+	tokenServ "physk/internal/services/token_service"
+	"strings"
+)
+
+func TokenValidationMDW(service tokenServ.TokenService) fiber.Handler {
+
+	return func(fiberCtx *fiber.Ctx) {
+		parts := strings.Split(fiberCtx.Get("Authorization"), ": ")
+		if len(parts) != 2 {
+			fiberCtx.Status(fiber.StatusUnauthorized)
+		}
+
+		token := parts[1]
+
+		claims, err := service.ValidateToken(token)
+		if err != nil {
+			if errors.Is(err, tokenServ.InvalidTokenError) {
+				fiberCtx.SendStatus(fiber.StatusUnauthorized)
+			}
+			fiberCtx.SendStatus(fiber.StatusInternalServerError)
+		}
+		fiberCtx.Locals("claims", claims)
+		fiberCtx.Next()
+	}
+
+}

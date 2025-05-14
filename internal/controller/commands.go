@@ -54,7 +54,7 @@ func (c *Controller) Login(
 		return "", fmt.Errorf("match password: %w", err)
 	}
 
-	token, err := c.tokenService.GenerateToken(userAgg)
+	token, err := c.tokenService.GenerateToken(userAgg.ID)
 	if err != nil {
 		return "", fmt.Errorf("gen new token: %w", err)
 	}
