@@ -1,12 +1,18 @@
 package config
 
+import "github.com/caarlos0/env/v7"
+
 var c *Config
 
 func C() *Config { return c }
 
-func init() {
+func Init() error {
 	c = new(Config)
-
+	err := env.Parse(c)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 type Config struct {

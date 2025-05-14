@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go.uber.org/fx"
 	"os"
+	"physk/internal/config"
 	"physk/internal/controller"
 	userCtx "physk/internal/domain/aggregates/user/context"
 	"physk/internal/infrastructure/delivery/fiber"
@@ -14,7 +15,7 @@ import (
 func App(ctx context.Context) {
 	app := fx.New(
 		fx.Supply(ctx),
-		//fx.config ?
+		fx.Invoke(config.Init),
 
 		userCtx.ProvideUserContext(),
 
