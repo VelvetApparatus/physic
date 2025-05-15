@@ -8,8 +8,8 @@ import (
 	"physk/internal/config"
 	"physk/internal/controller"
 	userCtx "physk/internal/domain/aggregates/user/context"
+	userRepo "physk/internal/domain/aggregates/user/repository"
 	"physk/internal/infrastructure"
-	"physk/internal/infrastructure/delivery/fiber"
 	"physk/internal/usecase"
 )
 
@@ -20,13 +20,14 @@ func App(ctx context.Context) {
 
 		infrastructure.ProvideModule(),
 
+		// merge to userAggregate
 		userCtx.ProvideModule(),
+
+		userRepo.ProvideModule(),
 
 		usecase.ProvideModule(),
 
 		controller.ProvideModule(),
-
-		fiber.ProvideModule(),
 	)
 
 	if err := app.Err(); err != nil {

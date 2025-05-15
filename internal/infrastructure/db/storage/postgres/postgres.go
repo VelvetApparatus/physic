@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"physk/internal/domain/aggregates/user"
-	"physk/internal/infrastructure/storage"
+	"physk/internal/infrastructure/db/storage"
 )
 
 type pgImpl struct {

@@ -10,5 +10,3 @@ type UserRepository interface {
 	LoginExists(ctx context.Context, login vo.UserLogin) (bool, error)
 	EmailExists(ctx context.Context, email vo.UserEmail) (bool, error)
 }
-
-/// todo: add provider

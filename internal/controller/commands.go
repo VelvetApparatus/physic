@@ -4,14 +4,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
+	"physk/internal/domain/aggregates/collection"
+	"physk/internal/domain/aggregates/collection/entities"
 	"physk/internal/domain/aggregates/user"
 	uCtx "physk/internal/domain/aggregates/user/context"
+	"physk/internal/infrastructure/db/storage"
 	deliveryDTO "physk/internal/infrastructure/delivery/dto"
-	"physk/internal/infrastructure/storage"
 )
 
 var (
-	UserNotFound = errors.New("user not found")
+	UserNotFound       = errors.New("user not found")
+	CollectionNotFound = errors.New("collection not found")
+	ImageNotFound      = errors.New("image not found")
 )
 
 func (c *Controller) RegisterUser(
@@ -26,7 +31,7 @@ func (c *Controller) RegisterUser(
 		return user.User{}, fmt.Errorf("create user: %w", err)
 	}
 
-	err = c.write.Create(ctx, userAgg)
+	err = c.write.CreateUser(ctx, userAgg)
 	if err != nil {
 		return user.User{}, fmt.Errorf("create in write model: %w", err)
 	}
@@ -60,4 +65,66 @@ func (c *Controller) Login(
 	}
 
 	return token, nil
+}
+
+func (c *Controller) CreateCollection(
+	ctx context.Context,
+	request deliveryDTO.CreateCollectionRequest,
+) (collection.Collection, error) {
+	dto := request.ToAggregateDTO()
+
+	collectionAgg := collection.NewCollection(dto)
+
+	err := c.write.CreateCollection(ctx, collectionAgg)
+	if err != nil {
+		return collection.Collection{}, fmt.Errorf("create collection: %w", err)
+	}
+
+	return collectionAgg, nil
+}
+
+func (c *Controller) AddImageToCollection(
+	ctx context.Context,
+	request deliveryDTO.AddImageToCollectionRequest,
+) (uuid.UUID, error) {
+	dto := request.ToAggregateDTO()
+	collectionAgg, err := c.read.GetCollectionByID(ctx, dto.CollectionID)
+	if err != nil {
+		if errors.Is(err, storage.ErrorNotFound) {
+			return uuid.UUID{}, CollectionNotFound
+		}
+		return uuid.UUID{}, fmt.Errorf("get collection by id: %w", err)
+	}
+
+	imgEntity := entities.Image{
+		ID:           uuid.New(),
+		CollectionID: collectionAgg.ID,
+		Name:         dto.Name,
+		ContentType:  dto.ContentType,
+		ImageData:    dto.Data,
+	}
+
+	err = collectionAgg.AddImage(imgEntity)
+	if err != nil {
+		return uuid.UUID{}, fmt.Errorf("collection aggregate: add image: %w", err)
+	}
+
+	err = c.write.AddImageToCollection(ctx, collectionAgg, imgEntity)
+	if err != nil {
+		return uuid.UUID{}, fmt.Errorf("write model: add image to collection: %w", err)
+	}
+	return imgEntity.ID, nil
+}
+
+func (c *Controller) DeleteCollection(
+	ctx context.Context,
+	request deliveryDTO.DeleteCollectionRequest,
+) error {
+	dto := request.ToAggregateDTO()
+
+	err := c.write.DeleteCollection(ctx, dto.CollectionID)
+	if err != nil {
+		return fmt.Errorf("delete collection: %w", err)
+	}
+	return nil
 }

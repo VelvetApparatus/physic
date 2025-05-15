@@ -19,43 +19,6 @@ type User struct {
 	Email        vo.UserEmail
 }
 
-func GetUser(
-	ctx context.UserCtx,
-	dto userDto.GetUserDTO,
-) (User, error) {
-
-	login, valid := vo.ParseLogin(dto.Login)
-	if !valid {
-		return User{}, userErrors.InvalidUserLoginError
-	}
-
-	userRole, valid := vo.ParseUserRole(dto.Role)
-	if !valid {
-		return User{}, userErrors.InvalidUserRoleError
-	}
-
-	email, valid := vo.ParseEmail(dto.Email)
-	if !valid {
-		return User{}, userErrors.InvalidUserEmailError
-	}
-
-	name, valid := vo.ParseUsername(dto.Username)
-	if !valid {
-		return User{}, userErrors.InvalidUsernameError
-	}
-
-	aggregate := User{
-		ID:           dto.ID,
-		Role:         userRole,
-		Login:        login,
-		PasswordHash: vo.UserPasswordHash(dto.PasswordHash),
-		Username:     name,
-		Email:        email,
-	}
-
-	return aggregate, nil
-}
-
 func CreateUser(
 	ctx context.UserCtx,
 	dto userDto.CreateUserDTO,
