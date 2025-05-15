@@ -126,7 +126,7 @@ func (r *Router) GetMe() fiber.Handler {
 
 		claims, ok := fiberCtx.Locals("claims").(tokenServ.Claims)
 		if !ok {
-			fiberCtx.SendStatus(fiber.StatusBadRequest)
+			fiberCtx.SendStatus(fiber.StatusUnauthorized)
 			return
 		}
 

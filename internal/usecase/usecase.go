@@ -46,7 +46,7 @@ func (u *UseCase) CreateCollection(ctx context.Context, c collection.Collection)
 }
 
 func (u *UseCase) AddImageToCollection(ctx context.Context, c collection.Collection, img entities.Image) error {
-	err := u.otlp.AddImageToCollection(ctx, c, img)
+	err := u.otlp.AddImageToCollection(ctx, img)
 	if err != nil {
 		return fmt.Errorf("otlp: add image to collection: %w", err)
 	}

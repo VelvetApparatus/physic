@@ -18,7 +18,7 @@ type Storage interface {
 	GetUserByLogin(ctx context.Context, login string) (user.User, error)
 	GetUserByID(ctx context.Context, userID uuid.UUID) (user.User, error)
 	CreateCollection(ctx context.Context, c collection.Collection) error
-	AddImageToCollection(ctx context.Context, c collection.Collection, i entities.Image) error
+	AddImageToCollection(ctx context.Context, i entities.Image) error
 	GetCollectionByID(ctx context.Context, collectionID uuid.UUID) (collection.Collection, error)
 	DeleteCollection(ctx context.Context, collectionID uuid.UUID) error
 	GetImageIDsByCollectionID(ctx context.Context, collectionID uuid.UUID) ([]uuid.UUID, error)

@@ -17,3 +17,7 @@ func ParseUserRole(role string) (UserRole, bool) {
 		return "", false
 	}
 }
+
+func (ur UserRole) IsAdmin() bool {
+	return ur == Admin
+}

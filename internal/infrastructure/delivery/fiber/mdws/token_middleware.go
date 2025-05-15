@@ -29,3 +29,26 @@ func TokenValidationMDW(service tokenServ.TokenService) fiber.Handler {
 	}
 
 }
+
+func IsAdminRole() fiber.Handler {
+	return func(fiberCtx *fiber.Ctx) {
+		parts := strings.Split(fiberCtx.Get("Authorization"), ": ")
+		if len(parts) != 2 {
+			fiberCtx.Status(fiber.StatusUnauthorized)
+			return
+		}
+
+		claims, ok := fiberCtx.Locals("claims").(tokenServ.Claims)
+		if !ok {
+			fiberCtx.SendStatus(fiber.StatusUnauthorized)
+			return
+		}
+
+		if !claims.Role.IsAdmin() {
+			fiberCtx.SendStatus(fiber.StatusUnauthorized)
+			return
+		}
+
+		fiberCtx.Next()
+	}
+}

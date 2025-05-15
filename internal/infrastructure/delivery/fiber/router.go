@@ -28,13 +28,23 @@ func (r *Router) MapRoutes(
 ) {
 	// middlewares
 	authedMiddleware := mdws.TokenValidationMDW(tokenServ.NewTokenService())
+	isAdminMiddleware := mdws.IsAdminRole()
+
+	// subgroups
+	userGroup := group.Group("/user")
+	collectionQueryGroup := group.Group("/collection")
+	collectionCommandsGroup := group.Group("/collection", authedMiddleware, isAdminMiddleware)
 
 	// commands
-	group.Post("/register", r.Register())
-	group.Post("/login", r.Login())
+	userGroup.Post("/register", r.Register())
+	userGroup.Post("/login", r.Login())
+	collectionCommandsGroup.Post("/create", r.CreateCollection())
+	collectionCommandsGroup.Post("/attach", r.AttachImageToCollection())
 
 	// queries
-	group.Get("/me", authedMiddleware, r.GetMe())
+	userGroup.Get("/me", authedMiddleware, r.GetMe())
+	collectionQueryGroup.Post("/ids", r.GetImageIDsByCollectionID())
+	collectionQueryGroup.Post("/image", r.GetImageByID())
 
 }
 

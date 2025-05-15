@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	vo "physk/internal/domain/aggregates/user/value_objects"
 	"time"
 )
 
@@ -14,7 +15,8 @@ var (
 )
 
 type Claims struct {
-	UserID uuid.UUID `json:"user_id"`
+	UserID uuid.UUID   `json:"user_id"`
+	Role   vo.UserRole `json:"role"`
 	jwt.RegisteredClaims
 }
 
@@ -26,9 +28,13 @@ func NewTokenService() TokenService {
 	return TokenService{secret: jwtSecretKey}
 }
 
-func (ts *TokenService) GenerateToken(userID uuid.UUID) (string, error) {
+func (ts *TokenService) GenerateToken(
+	userID uuid.UUID,
+	role vo.UserRole,
+) (string, error) {
 	claims := Claims{
 		UserID: userID,
+		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(3 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
