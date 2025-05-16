@@ -6,7 +6,7 @@ COPY . .
 
 RUN go build -o bin cmd/service/main.go
 
-FROM alpine:latest
+FROM alpine:3.21
 
 COPY --from=build /app/bin /app/bin
 

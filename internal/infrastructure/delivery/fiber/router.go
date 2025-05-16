@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/gofiber/fiber"
-	"github.com/gofiber/fiber/v2/middleware/cors"
 	fiberRecover "github.com/gofiber/fiber/v2/middleware/recover"
 	"go.uber.org/fx"
 	"physk/internal/config"
@@ -48,7 +47,7 @@ func (r *Router) MapRoutes(
 
 }
 
-func StartFiberRouter(router *Router, lc fx.Lifecycle) error {
+func StartFiberRouter(lc fx.Lifecycle, router *Router) error {
 	app := fiber.New(
 		&fiber.Settings{
 			ReadTimeout:  time.Second * 10,
@@ -59,27 +58,30 @@ func StartFiberRouter(router *Router, lc fx.Lifecycle) error {
 
 	recoverConfig := fiberRecover.ConfigDefault
 	recoverConfig.EnableStackTrace = true
-	app.Use(fiberRecover.New(recoverConfig))
 
-	app.Use(cors.New(cors.Config{
-		AllowOrigins:     "http://localhost:3000,http://127.0.0.1:3000",
-		AllowCredentials: true,
-		AllowMethods:     "GET,POST,HEAD,PUT,DELETE,PATCH,OPTIONS",
-	}))
+	//app.Use(fiberRecover.New(recoverConfig))
+
+	//app.Use(cors.New(cors.Config{
+	//	AllowOrigins:     "http://localhost:3000,http://127.0.0.1:3000",
+	//	AllowCredentials: true,
+	//	AllowMethods:     "GET,POST,HEAD,PUT,DELETE,PATCH,OPTIONS",
+	//}))
 
 	v1Group := app.Group("api/v1")
 	router.MapRoutes(v1Group)
 
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			err := app.Listen(fmt.Sprintf("%s:%d", config.C().App.Host, config.C().App.Port))
-			if err != nil {
-				return fmt.Errorf("listen: %w", err)
-			}
+			addr := fmt.Sprintf("%s:%d", config.C().App.Host, config.C().App.Port)
+			fmt.Printf("Starting Fiber app on %s\n", addr)
+			go app.Listen(addr)
+			//if err != nil {
+			//	return fmt.Errorf("failed to start Fiber app: %w", err)
+			//}
 			return nil
-
 		},
 		OnStop: func(ctx context.Context) error {
+			fmt.Println("Shutting down Fiber app")
 			return app.Shutdown()
 		},
 	})

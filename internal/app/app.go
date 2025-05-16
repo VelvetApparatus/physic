@@ -14,8 +14,10 @@ import (
 
 func App(ctx context.Context) {
 	app := fx.New(
-		fx.Supply(ctx),
-		fx.Invoke(config.Init),
+		fx.Module("check",
+			fx.Provide(func() context.Context { return ctx }),
+			fx.Invoke(config.Init),
+		),
 
 		infrastructure.ProvideModule(),
 

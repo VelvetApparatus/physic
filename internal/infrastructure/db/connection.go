@@ -4,13 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"physk/internal/config"
 	"time"
 )
 
 func NewConnection(ctx context.Context) (*sql.DB, error) {
 	conf := config.C().Db
-	database, err := sql.Open("postgres", stringConfig(conf))
+	database, err := sql.Open("pgx", stringConfig(conf))
 	if err != nil {
 		return nil, fmt.Errorf("could not open database: %w", err)
 	}

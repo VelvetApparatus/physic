@@ -114,7 +114,7 @@ func (p *pgImpl) GetImageByID(ctx context.Context, imgID uuid.UUID) (entities.Im
 
 func (p *pgImpl) CreateUser(ctx context.Context, u user.User) error {
 	var (
-		query = `INSERT INTO user.users (id, role, login, password_hash, username, email) VALUES ($1, $2, $3, $4, $5, $6);`
+		query = `INSERT INTO user_auth.users (id, role, login, password_hash, username, email) VALUES ($1, $2, $3, $4, $5, $6);`
 	)
 
 	_, err := p.db.ExecContext(ctx, query, u.ID, u.Role, u.PasswordHash, u.Username, u.Email)
@@ -126,7 +126,7 @@ func (p *pgImpl) CreateUser(ctx context.Context, u user.User) error {
 
 func (p *pgImpl) GetUserByLogin(ctx context.Context, login string) (user.User, error) {
 	var (
-		query = `SELECT id, role, login, password_hash, username, email FROM user.users WHERE login=$1;`
+		query = `SELECT id, role, login, password_hash, username, email FROM user_auth.users WHERE login=$1;`
 		usr   user.User
 	)
 
@@ -148,7 +148,7 @@ func (p *pgImpl) GetUserByLogin(ctx context.Context, login string) (user.User, e
 
 func (p *pgImpl) GetUserByID(ctx context.Context, userID uuid.UUID) (user.User, error) {
 	var (
-		query = `SELECT id, role, login, password_hash, username, email FROM user.users WHERE id=$1;`
+		query = `SELECT id, role, login, password_hash, username, email FROM user_auth.users WHERE id=$1;`
 		usr   user.User
 	)
 
