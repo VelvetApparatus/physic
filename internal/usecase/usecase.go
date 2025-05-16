@@ -50,7 +50,7 @@ func (u *UseCase) AddImageToCollection(ctx context.Context, c collection.Collect
 	if err != nil {
 		return fmt.Errorf("otlp: add image to collection: %w", err)
 	}
-	err = u.s3.SaveImageByName(ctx, entities.ImageName(img.CollectionID, img.ID), img.ImageData)
+	err = u.s3.SaveImageByName(ctx, entities.ImageName(img.CollectionID, img.ID), img.ImageData, img.ContentType)
 	if err != nil {
 		return fmt.Errorf("save image by name: %w", err)
 	}
@@ -111,13 +111,14 @@ func (u *UseCase) GetImageByID(
 		return entities.Image{}, fmt.Errorf("get image by id: %w", err)
 	}
 
-	imgRaw, err := u.s3.GetImageByName(ctx, entities.ImageName(img.CollectionID, imgID))
+	imgRaw, contentType, err := u.s3.GetImageByName(ctx, entities.ImageName(img.CollectionID, imgID))
 	if err != nil {
 		return entities.Image{}, fmt.Errorf("s3: get image doc: %w", err)
 	}
 
 	img.ImageData = make([]byte, len(imgRaw))
 	copy(img.ImageData, imgRaw)
+	img.ContentType = contentType
 
 	return img, nil
 }
