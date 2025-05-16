@@ -9,7 +9,7 @@ import (
 
 func main() {
 	ctx, cancel := signal.NotifyContext(
-		context.Background(), syscall.SIGINT, syscall.SIGKILL, syscall.SIGSTOP,
+		context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGSTOP,
 	)
 	defer cancel()
 	app.App(ctx)

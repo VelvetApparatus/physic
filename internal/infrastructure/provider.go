@@ -5,6 +5,8 @@ import (
 	"physk/internal/infrastructure/db"
 	"physk/internal/infrastructure/db/storage/postgres"
 	"physk/internal/infrastructure/delivery/fiber"
+	"physk/internal/infrastructure/s3"
+	"physk/internal/infrastructure/s3/storage/minio"
 )
 
 func ProvideModule() fx.Option {
@@ -13,7 +15,9 @@ func ProvideModule() fx.Option {
 
 		fx.Provide(
 			db.NewConnection,
+			s3.NewMinioClient,
 			postgres.NewStorage,
+			minio.NewS3Storage,
 		),
 
 		fiber.ProvideModule(),
