@@ -7,11 +7,11 @@ import (
 )
 
 type UserCreateRequest struct {
-	Role     string
-	Login    string
-	Password string
-	Username string
-	Email    string
+	Role     string `json:"role"`
+	Login    string `json:"login"`
+	Password string `json:"password"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
 }
 
 func (u *UserCreateRequest) ToAggregateDTO() userDTO.CreateUserDTO {

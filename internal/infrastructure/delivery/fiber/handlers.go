@@ -16,7 +16,6 @@ import (
 	"physk/internal/infrastructure/delivery/dto"
 	"physk/internal/infrastructure/delivery/fiber/models"
 	tokenServ "physk/internal/services/token_service"
-	"strings"
 )
 
 func (r *Router) Register() fiber.Handler {
@@ -39,6 +38,10 @@ func (r *Router) Register() fiber.Handler {
 
 		user, err := r.ctrl.RegisterUser(ctx, request)
 		if err != nil {
+			slog.LogAttrs(
+				ctx, slog.LevelError, "register user uc",
+				slog.String("error", err.Error()),
+			)
 			var userErr userErrors.UserError
 			if errors.As(err, &userErr) {
 				fiberCtx.Status(fiber.StatusBadRequest).JSON(models.InvalidRequestResponse{Msg: userErr.Error()})
@@ -118,13 +121,8 @@ func (r *Router) GetMe() fiber.Handler {
 		ctx, cancel := context.WithCancel(fiberCtx.Context())
 		defer cancel()
 
-		parts := strings.Split(fiberCtx.Get("Authorization"), ": ")
-		if len(parts) != 2 {
-			fiberCtx.Status(fiber.StatusUnauthorized)
-			return
-		}
-
-		claims, ok := fiberCtx.Locals("claims").(tokenServ.Claims)
+		fmt.Println(fiberCtx.Locals("claims"))
+		claims, ok := fiberCtx.Locals("claims").(*tokenServ.Claims)
 		if !ok {
 			fiberCtx.SendStatus(fiber.StatusUnauthorized)
 			return
@@ -154,11 +152,13 @@ func (r *Router) GetMe() fiber.Handler {
 		}
 
 		err = fiberCtx.Status(fiber.StatusOK).JSON(response)
-		slog.LogAttrs(
-			ctx, slog.LevelError, "json response",
-			slog.String("error", err.Error()),
-			slog.Any("response", response),
-		)
+		if err != nil {
+			slog.LogAttrs(
+				ctx, slog.LevelError, "json response",
+				slog.String("error", err.Error()),
+				slog.Any("response", response),
+			)
+		}
 
 	}
 }
@@ -278,6 +278,10 @@ func (r *Router) AttachImageToCollection() fiber.Handler {
 		imgID, err := r.ctrl.AddImageToCollection(ctx, request)
 
 		if err != nil {
+			slog.LogAttrs(
+				ctx, slog.LevelError, "add image to collection",
+				slog.String("error", err.Error()),
+			)
 			if errors.Is(err, controller.CollectionNotFound) {
 				fiberCtx.Status(fiber.StatusNotFound).SendString("not found")
 				return

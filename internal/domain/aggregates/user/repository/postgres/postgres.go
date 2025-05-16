@@ -18,7 +18,7 @@ func NewUserRepository(db *sql.DB) repository.UserRepository {
 
 func (p *pgImpl) UsernameExists(ctx context.Context, username vo.UserName) (bool, error) {
 	var (
-		query  = `SELECT EXISTS(SELECT 1 FROM user.users WHERE username=$1);`
+		query  = `SELECT EXISTS(SELECT 1 FROM user_auth.users WHERE username=$1);`
 		exists bool
 	)
 
@@ -32,7 +32,7 @@ func (p *pgImpl) UsernameExists(ctx context.Context, username vo.UserName) (bool
 
 func (p *pgImpl) LoginExists(ctx context.Context, login vo.UserLogin) (bool, error) {
 	var (
-		query  = `SELECT EXISTS(SELECT 1 FROM user.users WHERE login=$1);`
+		query  = `SELECT EXISTS(SELECT 1 FROM user_auth.users WHERE login=$1);`
 		exists bool
 	)
 
@@ -46,7 +46,7 @@ func (p *pgImpl) LoginExists(ctx context.Context, login vo.UserLogin) (bool, err
 
 func (p *pgImpl) EmailExists(ctx context.Context, email vo.UserEmail) (bool, error) {
 	var (
-		query  = `SELECT EXISTS(SELECT 1 FROM user.users WHERE email=$1);`
+		query  = `SELECT EXISTS(SELECT 1 FROM user_auth.users WHERE email=$1);`
 		exists bool
 	)
 

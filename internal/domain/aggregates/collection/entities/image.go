@@ -14,7 +14,7 @@ type Image struct {
 }
 
 func ImageName(collectionID uuid.UUID, imgID uuid.UUID) string {
-	return fmt.Sprintf("%s:%s", collectionID, imgID)
+	return fmt.Sprintf("%s/%s", collectionID, imgID)
 }
 
-func (i *Image) ImageName() string { return fmt.Sprintf("%s:%s", i.CollectionID, i.ID) }
+func (i *Image) ImageName() string { return fmt.Sprintf("%s/%s", i.CollectionID, i.ID) }

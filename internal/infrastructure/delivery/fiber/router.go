@@ -31,19 +31,18 @@ func (r *Router) MapRoutes(
 
 	// subgroups
 	userGroup := group.Group("/user")
-	collectionQueryGroup := group.Group("/collection")
-	collectionCommandsGroup := group.Group("/collection", authedMiddleware, isAdminMiddleware)
+	collectionGroup := group.Group("/collection")
 
 	// commands
 	userGroup.Post("/register", r.Register())
 	userGroup.Post("/login", r.Login())
-	collectionCommandsGroup.Post("/create", r.CreateCollection())
-	collectionCommandsGroup.Post("/attach", r.AttachImageToCollection())
+	collectionGroup.Post("/create", authedMiddleware, isAdminMiddleware, r.CreateCollection())
+	collectionGroup.Post("/attach", authedMiddleware, isAdminMiddleware, r.AttachImageToCollection())
 
 	// queries
 	userGroup.Get("/me", authedMiddleware, r.GetMe())
-	collectionQueryGroup.Post("/ids", r.GetImageIDsByCollectionID())
-	collectionQueryGroup.Post("/image", r.GetImageByID())
+	collectionGroup.Post("/ids", r.GetImageIDsByCollectionID())
+	collectionGroup.Post("/image", r.GetImageByID())
 
 }
 

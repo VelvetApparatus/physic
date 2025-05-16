@@ -2,14 +2,10 @@ package hasher
 
 import (
 	"crypto/md5"
-	"fmt"
+	"encoding/base64"
 )
 
 func HashString(s string) (string, error) {
-	md5Hash := md5.New()
-	_, err := md5Hash.Write([]byte(s))
-	if err != nil {
-		return "", fmt.Errorf("cannot write string to hasher writer: %w", err)
-	}
-	return string(md5Hash.Sum(nil)), nil
+	hash := md5.Sum([]byte(s))
+	return base64.StdEncoding.EncodeToString(hash[:]), nil
 }

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
+	"log"
 	"physk/internal/domain/aggregates/collection"
 	"physk/internal/domain/aggregates/collection/entities"
 	"physk/internal/domain/aggregates/user"
@@ -34,7 +35,7 @@ func (p *pgImpl) CreateCollection(ctx context.Context, c collection.Collection) 
 
 func (p *pgImpl) AddImageToCollection(ctx context.Context, i entities.Image) error {
 	var (
-		query = `INSERT INTO collection.images (id, colllection_id, name) VALUES ($1, $2, $3)`
+		query = `INSERT INTO collection.images (id, collection_id, name) VALUES ($1, $2, $3)`
 	)
 
 	_, err := p.db.ExecContext(ctx, query, i.ID, i.CollectionID, i.Name)
@@ -50,7 +51,6 @@ func (p *pgImpl) GetCollectionByID(ctx context.Context, collectionID uuid.UUID) 
 SELECT
     c.id, c.name, c.created_at
     FROM collection.collections c 
-JOIN collection.images i ON c.id = i.collection_id
 WHERE c.id=$1`
 		col collection.Collection
 	)
@@ -117,8 +117,10 @@ func (p *pgImpl) CreateUser(ctx context.Context, u user.User) error {
 		query = `INSERT INTO user_auth.users (id, role, login, password_hash, username, email) VALUES ($1, $2, $3, $4, $5, $6);`
 	)
 
-	_, err := p.db.ExecContext(ctx, query, u.ID, u.Role, u.PasswordHash, u.Username, u.Email)
+	_, err := p.db.ExecContext(ctx, query, u.ID.String(), u.Role.String(), u.Login.String(), u.PasswordHash, u.Username.String(), u.Email.String())
 	if err != nil {
+		log.Printf("CreateUser failed: login=%q username=%q email=%q password_hash=%q",
+			u.Login.String(), u.Username.String(), u.Email.String(), u.PasswordHash)
 		return fmt.Errorf("exec: %w", err)
 	}
 	return nil
@@ -134,7 +136,7 @@ func (p *pgImpl) GetUserByLogin(ctx context.Context, login string) (user.User, e
 		Scan(
 			&usr.ID, &usr.Role, &usr.Login,
 			&usr.PasswordHash, &usr.Username,
-			&usr.Username, &usr.Email,
+			&usr.Email,
 		)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -156,7 +158,7 @@ func (p *pgImpl) GetUserByID(ctx context.Context, userID uuid.UUID) (user.User, 
 		Scan(
 			&usr.ID, &usr.Role, &usr.Login,
 			&usr.PasswordHash, &usr.Username,
-			&usr.Username, &usr.Email,
+			&usr.Email,
 		)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

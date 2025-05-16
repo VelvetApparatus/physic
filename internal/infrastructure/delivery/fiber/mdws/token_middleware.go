@@ -11,11 +11,11 @@ func TokenValidationMDW(service tokenServ.TokenService) fiber.Handler {
 
 	return func(fiberCtx *fiber.Ctx) {
 		parts := strings.Split(fiberCtx.Get("Authorization"), ": ")
-		if len(parts) != 2 {
+		if len(parts) != 1 {
 			fiberCtx.Status(fiber.StatusUnauthorized)
 		}
 
-		token := parts[1]
+		token := parts[0]
 
 		claims, err := service.ValidateToken(token)
 		if err != nil {
@@ -32,13 +32,7 @@ func TokenValidationMDW(service tokenServ.TokenService) fiber.Handler {
 
 func IsAdminRole() fiber.Handler {
 	return func(fiberCtx *fiber.Ctx) {
-		parts := strings.Split(fiberCtx.Get("Authorization"), ": ")
-		if len(parts) != 2 {
-			fiberCtx.Status(fiber.StatusUnauthorized)
-			return
-		}
-
-		claims, ok := fiberCtx.Locals("claims").(tokenServ.Claims)
+		claims, ok := fiberCtx.Locals("claims").(*tokenServ.Claims)
 		if !ok {
 			fiberCtx.SendStatus(fiber.StatusUnauthorized)
 			return
