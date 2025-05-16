@@ -16,14 +16,14 @@ func Init() error {
 }
 
 type Config struct {
-	App AppSettings   `envPrefix:"app_"`
+	App AppSettings   `envPrefix:"APP_"`
 	Db  DBSettings    `envPrefix:"DB_"`
 	S3  MinioSettings `envPrefix:"S3_"`
 }
 
 type AppSettings struct {
-	Host string `env:"host"`
-	Port int    `env:"port"`
+	Host string `env:"HOST"`
+	Port int    `env:"PORT"`
 }
 
 type DBSettings struct {
