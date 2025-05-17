@@ -3,7 +3,8 @@ package fiber
 import (
 	"context"
 	"fmt"
-	"github.com/gofiber/fiber"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	fiberRecover "github.com/gofiber/fiber/v2/middleware/recover"
 	"go.uber.org/fx"
 	"physk/internal/config"
@@ -48,7 +49,7 @@ func (r *Router) MapRoutes(
 
 func StartFiberRouter(lc fx.Lifecycle, router *Router) error {
 	app := fiber.New(
-		&fiber.Settings{
+		fiber.Config{
 			ReadTimeout:  time.Second * 10,
 			WriteTimeout: time.Second * 15,
 			IdleTimeout:  time.Minute,
@@ -58,13 +59,13 @@ func StartFiberRouter(lc fx.Lifecycle, router *Router) error {
 	recoverConfig := fiberRecover.ConfigDefault
 	recoverConfig.EnableStackTrace = true
 
-	//app.Use(fiberRecover.New(recoverConfig))
+	app.Use(fiberRecover.New(recoverConfig))
 
-	//app.Use(cors.New(cors.Config{
-	//	AllowOrigins:     "http://localhost:3000,http://127.0.0.1:3000",
-	//	AllowCredentials: true,
-	//	AllowMethods:     "GET,POST,HEAD,PUT,DELETE,PATCH,OPTIONS",
-	//}))
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     "http://localhost:3000,http://127.0.0.1:3000",
+		AllowCredentials: true,
+		AllowMethods:     "GET,POST,HEAD,PUT,DELETE,PATCH,OPTIONS",
+	}))
 
 	v1Group := app.Group("api/v1")
 	router.MapRoutes(v1Group)

@@ -5,7 +5,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/gofiber/fiber"
+	"github.com/gofiber/fiber/v2"
+
 	"github.com/google/uuid"
 	"io"
 	"log/slog"
@@ -19,7 +20,7 @@ import (
 )
 
 func (r *Router) Register() fiber.Handler {
-	return func(fiberCtx *fiber.Ctx) {
+	return func(fiberCtx *fiber.Ctx) error {
 		ctx, cancel := context.WithCancel(fiberCtx.Context())
 		defer cancel()
 
@@ -29,11 +30,10 @@ func (r *Router) Register() fiber.Handler {
 		if err != nil {
 			slog.LogAttrs(
 				ctx, slog.LevelError, "body-parser",
-				slog.String("body", fiberCtx.Body()),
+				slog.String("body", string(fiberCtx.Body())),
 				slog.String("error", err.Error()),
 			)
-			fiberCtx.Status(fiber.StatusBadRequest).SendString("invalid body")
-			return
+			return fiberCtx.Status(fiber.StatusBadRequest).SendString("invalid body")
 		}
 
 		user, err := r.ctrl.RegisterUser(ctx, request)
@@ -44,11 +44,11 @@ func (r *Router) Register() fiber.Handler {
 			)
 			var userErr userErrors.UserError
 			if errors.As(err, &userErr) {
-				fiberCtx.Status(fiber.StatusBadRequest).JSON(models.InvalidRequestResponse{Msg: userErr.Error()})
-				return
+				return fiberCtx.Status(fiber.StatusBadRequest).JSON(models.InvalidRequestResponse{Msg: userErr.Error()})
+
 			}
-			fiberCtx.SendStatus(fiber.StatusInternalServerError)
-			return
+			return fiberCtx.SendStatus(fiber.StatusInternalServerError)
+
 		}
 
 		response := dto.UserCreateResponse{
@@ -58,20 +58,12 @@ func (r *Router) Register() fiber.Handler {
 			Email:    user.Email.String(),
 		}
 
-		err = fiberCtx.Status(fiber.StatusOK).JSON(response)
-		if err != nil {
-			slog.LogAttrs(
-				ctx, slog.LevelError, "json response",
-				slog.String("error", err.Error()),
-				slog.Any("response", response),
-			)
-		}
-
+		return fiberCtx.Status(fiber.StatusOK).JSON(response)
 	}
 }
 
 func (r *Router) Login() fiber.Handler {
-	return func(fiberCtx *fiber.Ctx) {
+	return func(fiberCtx *fiber.Ctx) error {
 		ctx, cancel := context.WithCancel(fiberCtx.Context())
 		defer cancel()
 
@@ -82,11 +74,11 @@ func (r *Router) Login() fiber.Handler {
 			slog.LogAttrs(
 				ctx, slog.LevelError, "body-parse",
 				slog.String("error", err.Error()),
-				slog.String("body", fiberCtx.Body()),
+				slog.String("body", string(fiberCtx.Body())),
 			)
 
-			fiberCtx.Status(fiber.StatusBadRequest).SendString("invalid body")
-			return
+			return fiberCtx.Status(fiber.StatusBadRequest).SendString("invalid body")
+
 		}
 
 		token, err := r.ctrl.Login(ctx, request)
@@ -97,35 +89,27 @@ func (r *Router) Login() fiber.Handler {
 			)
 
 			if errors.Is(err, controller.UserNotFound) {
-				fiberCtx.Status(fiber.StatusBadRequest).SendString("invalid credentials")
-				return
+				return fiberCtx.Status(fiber.StatusBadRequest).SendString("invalid credentials")
+
 			}
-			fiberCtx.SendStatus(fiber.StatusInternalServerError)
-			return
+			return fiberCtx.SendStatus(fiber.StatusInternalServerError)
+
 		}
 
 		response := dto.UserLoginResponse{Token: token}
-		err = fiberCtx.Status(fiber.StatusOK).JSON(response)
-		if err != nil {
-			slog.LogAttrs(
-				ctx, slog.LevelError, "send login response",
-				slog.Any("response", response),
-				slog.String("error", err.Error()),
-			)
-		}
+		return fiberCtx.Status(fiber.StatusOK).JSON(response)
 	}
 }
 
 func (r *Router) GetMe() fiber.Handler {
-	return func(fiberCtx *fiber.Ctx) {
+	return func(fiberCtx *fiber.Ctx) error {
 		ctx, cancel := context.WithCancel(fiberCtx.Context())
 		defer cancel()
 
-		fmt.Println(fiberCtx.Locals("claims"))
 		claims, ok := fiberCtx.Locals("claims").(*tokenServ.Claims)
 		if !ok {
-			fiberCtx.SendStatus(fiber.StatusUnauthorized)
-			return
+			return fiberCtx.SendStatus(fiber.StatusUnauthorized)
+
 		}
 
 		user, err := r.ctrl.GetMe(ctx, claims.UserID)
@@ -137,11 +121,11 @@ func (r *Router) GetMe() fiber.Handler {
 
 			// todo: do not catch errors from token service
 			if errors.Is(err, tokenServ.InvalidTokenError) {
-				fiberCtx.Status(fiber.StatusUnauthorized).SendString("invalid token")
-				return
+				return fiberCtx.Status(fiber.StatusUnauthorized).SendString("invalid token")
+
 			}
-			fiberCtx.SendStatus(fiber.StatusInternalServerError)
-			return
+			return fiberCtx.SendStatus(fiber.StatusInternalServerError)
+
 		}
 
 		response := dto.GetMeResponse{
@@ -151,20 +135,12 @@ func (r *Router) GetMe() fiber.Handler {
 			Role:     user.Role.String(),
 		}
 
-		err = fiberCtx.Status(fiber.StatusOK).JSON(response)
-		if err != nil {
-			slog.LogAttrs(
-				ctx, slog.LevelError, "json response",
-				slog.String("error", err.Error()),
-				slog.Any("response", response),
-			)
-		}
-
+		return fiberCtx.Status(fiber.StatusOK).JSON(response)
 	}
 }
 
 func (r *Router) CreateCollection() fiber.Handler {
-	return func(fiberCtx *fiber.Ctx) {
+	return func(fiberCtx *fiber.Ctx) error {
 		ctx, cancel := context.WithCancel(fiberCtx.Context())
 		defer cancel()
 
@@ -178,94 +154,83 @@ func (r *Router) CreateCollection() fiber.Handler {
 				slog.String("error", err.Error()),
 			)
 
-			fiberCtx.Status(fiber.StatusBadRequest).SendString("invalid body")
-			return
+			return fiberCtx.Status(fiber.StatusBadRequest).SendString("invalid body")
+
 		}
 
 		collection, err := r.ctrl.CreateCollection(ctx, *request)
 		if err != nil {
-			fiberCtx.SendStatus(fiber.StatusInternalServerError)
-			return
+			return fiberCtx.SendStatus(fiber.StatusInternalServerError)
+
 		}
 
 		response := dto.CreateCollectionResponse{ID: collection.ID}
 
-		err = fiberCtx.Status(fiber.StatusOK).JSON(response)
-		if err != nil {
-			slog.LogAttrs(
-				ctx, slog.LevelError, "fiber: json",
-				slog.String("handler", "create-collection"),
-				slog.String("error", err.Error()),
-			)
-		}
+		return fiberCtx.Status(fiber.StatusOK).JSON(response)
 	}
 }
 
 func (r *Router) AttachImageToCollection() fiber.Handler {
-	return func(fiberCtx *fiber.Ctx) {
+	return func(fiberCtx *fiber.Ctx) error {
 		ctx, cancel := context.WithCancel(fiberCtx.Context())
 		defer cancel()
 
 		form, err := fiberCtx.MultipartForm()
 		if err != nil {
-			fiberCtx.Status(fiber.StatusBadRequest).SendString("invalid body")
-			return
+			return fiberCtx.Status(fiber.StatusBadRequest).SendString("invalid body")
+
 		}
 
 		rawID, ok := form.Value["id"]
 		if !ok || len(rawID) != 1 {
-			fiberCtx.Status(fiber.StatusBadRequest).SendString("no collection id")
-			return
+			return fiberCtx.Status(fiber.StatusBadRequest).SendString("no collection id")
+
 		}
 
 		collectionID, err := uuid.Parse(rawID[0])
 		if err != nil {
-			fiberCtx.Status(fiber.StatusBadRequest).SendString("invalid collection id")
-			return
+			return fiberCtx.Status(fiber.StatusBadRequest).SendString("invalid collection id")
+
 		}
 
 		formNames, ok := form.Value["name"]
 		if !ok || len(formNames) != 1 {
-			fiberCtx.Status(fiber.StatusBadRequest).SendString("no image name")
-			return
+			return fiberCtx.Status(fiber.StatusBadRequest).SendString("no image name")
+
 		}
 
 		name := formNames[0]
 		if len(name) == 0 {
-			fiberCtx.Status(fiber.StatusBadRequest).SendString("invalid image name")
-			return
+			return fiberCtx.Status(fiber.StatusBadRequest).SendString("invalid image name")
 		}
 
 		formFiles, ok := form.File["image"]
 		if !ok || len(formFiles) != 1 {
-			fiberCtx.Status(fiber.StatusBadRequest).SendString("no image file")
-			return
+			return fiberCtx.Status(fiber.StatusBadRequest).SendString("no image file")
 		}
 
 		fileHeader := formFiles[0]
 
 		contentType := fileHeader.Header.Get("Content-Type")
 		if len(contentType) == 0 {
-			fiberCtx.Status(fiber.StatusBadRequest).SendString("invalid content-type")
-			return
+			return fiberCtx.Status(fiber.StatusBadRequest).SendString("invalid content-type")
 		}
 
 		if contentType != "image/png" && contentType != "image/jpg" && contentType != "image/jpeg" {
-			fiberCtx.Status(fiber.StatusBadRequest).SendString(fmt.Sprintf("invalid image content-type value: %s", contentType))
-			return
+			return fiberCtx.Status(fiber.StatusBadRequest).SendString(fmt.Sprintf("invalid image content-type value: %s", contentType))
 		}
 
 		f, err := fileHeader.Open()
 		if err != nil {
-			fiberCtx.Status(fiber.StatusBadRequest).SendString("invalid file")
-			return
+			return fiberCtx.Status(fiber.StatusBadRequest).SendString("invalid file")
+
 		}
 		defer f.Close()
 
 		bytes, err := io.ReadAll(f)
 		if err != nil {
-			fiberCtx.Status(fiber.StatusBadRequest).SendString("invalid file")
-			return
+			return fiberCtx.Status(fiber.StatusBadRequest).SendString("invalid file")
+
 		}
 
 		request := dto.AddImageToCollectionRequest{
@@ -283,29 +248,22 @@ func (r *Router) AttachImageToCollection() fiber.Handler {
 				slog.String("error", err.Error()),
 			)
 			if errors.Is(err, controller.CollectionNotFound) {
-				fiberCtx.Status(fiber.StatusNotFound).SendString("not found")
-				return
+				return fiberCtx.Status(fiber.StatusNotFound).SendString("not found")
+
 			}
 
-			fiberCtx.SendStatus(fiber.StatusInternalServerError)
-			return
+			return fiberCtx.SendStatus(fiber.StatusInternalServerError)
+
 		}
 
 		response := dto.AddImageToCollectionResponse{ID: imgID}
 
-		err = fiberCtx.Status(fiber.StatusOK).JSON(response)
-		if err != nil {
-			slog.LogAttrs(
-				ctx, slog.LevelError, "fiber: json",
-				slog.String("handler", "add-image-to-collection"),
-				slog.String("error", err.Error()),
-			)
-		}
+		return fiberCtx.Status(fiber.StatusOK).JSON(response)
 	}
 }
 
 func (r *Router) GetImageIDsByCollectionID() fiber.Handler {
-	return func(fiberCtx *fiber.Ctx) {
+	return func(fiberCtx *fiber.Ctx) error {
 		ctx, cancel := context.WithCancel(fiberCtx.Context())
 		defer cancel()
 
@@ -318,8 +276,8 @@ func (r *Router) GetImageIDsByCollectionID() fiber.Handler {
 				slog.String("error", err.Error()),
 			)
 
-			fiberCtx.Status(fiber.StatusBadRequest).SendString("invalid body")
-			return
+			return fiberCtx.Status(fiber.StatusBadRequest).SendString("invalid body")
+
 		}
 
 		ids, err := r.ctrl.GetImageIDsByCollectionID(ctx, request.CollectionID)
@@ -330,24 +288,18 @@ func (r *Router) GetImageIDsByCollectionID() fiber.Handler {
 				slog.String("collectionID", request.CollectionID.String()),
 			)
 
-			fiberCtx.SendStatus(fiber.StatusInternalServerError)
-			return
+			return fiberCtx.SendStatus(fiber.StatusInternalServerError)
+
 		}
 
 		response := dto.GetImagesIDsByCollectionIDResponse{ImageIDs: ids}
-		err = fiberCtx.Status(fiber.StatusOK).JSON(response)
-		if err != nil {
-			slog.LogAttrs(
-				ctx, slog.LevelError, "fiber: json",
-				slog.String("handler", "get-images-ids-by-collection-id"),
-				slog.String("error", err.Error()),
-			)
-		}
+		return fiberCtx.Status(fiber.StatusOK).JSON(response)
+
 	}
 }
 
 func (r *Router) GetImageByID() fiber.Handler {
-	return func(fiberCtx *fiber.Ctx) {
+	return func(fiberCtx *fiber.Ctx) error {
 		ctx, cancel := context.WithCancel(fiberCtx.Context())
 		defer cancel()
 
@@ -360,15 +312,15 @@ func (r *Router) GetImageByID() fiber.Handler {
 				slog.String("error", err.Error()),
 			)
 
-			fiberCtx.Status(fiber.StatusBadRequest).SendString("invalid body")
-			return
+			return fiberCtx.Status(fiber.StatusBadRequest).SendString("invalid body")
+
 		}
 
 		img, err := r.ctrl.GetImageByID(ctx, request.ID)
 		if err != nil {
 			if errors.Is(err, controller.ImageNotFound) {
-				fiberCtx.SendStatus(fiber.StatusNotFound)
-				return
+				return fiberCtx.SendStatus(fiber.StatusNotFound)
+
 			}
 		}
 
@@ -390,8 +342,8 @@ func (r *Router) GetImageByID() fiber.Handler {
 				ctx, slog.LevelError, "create part",
 				slog.String("error", err.Error()),
 			)
-			fiberCtx.SendStatus(fiber.StatusInternalServerError)
-			return
+			return fiberCtx.SendStatus(fiber.StatusInternalServerError)
+
 		}
 		_, err = part.Write(img.ImageData)
 		if err != nil {
@@ -399,12 +351,12 @@ func (r *Router) GetImageByID() fiber.Handler {
 				ctx, slog.LevelError, "write file",
 				slog.String("error", err.Error()),
 			)
-			fiberCtx.SendStatus(fiber.StatusInternalServerError)
-			return
+			return fiberCtx.SendStatus(fiber.StatusInternalServerError)
+
 		}
 
 		fiberCtx.Set(fiber.HeaderContentType, writer.FormDataContentType())
 
-		fiberCtx.SendBytes(buf.Bytes())
+		return fiberCtx.Send(buf.Bytes())
 	}
 }
