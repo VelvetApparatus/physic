@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"log/slog"
 	"physk/internal/domain/aggregates/collection"
+	collectionDto "physk/internal/domain/aggregates/collection/dto"
 	"physk/internal/domain/aggregates/collection/entities"
 	"physk/internal/domain/aggregates/user"
 	otlpStorage "physk/internal/infrastructure/db/storage"
@@ -16,11 +17,12 @@ import (
 type WriteModel interface {
 	CreateUser(ctx context.Context, u user.User) error
 	CreateCollection(ctx context.Context, c collection.Collection) error
-	AddImageToCollection(ctx context.Context, c collection.Collection, i entities.Image) error
+	AddImageToCollection(ctx context.Context, i entities.Image, isPreview bool) error
 	DeleteCollection(ctx context.Context, collectionID uuid.UUID) error
 }
 
 type ReadModel interface {
+	GetCollections(ctx context.Context) (collectionDto.GetCollectionWithPreview, error)
 	GetUserByLogin(ctx context.Context, login string) (user.User, error)
 	GetUserByID(ctx context.Context, userID uuid.UUID) (user.User, error)
 	GetCollectionByID(ctx context.Context, collectionID uuid.UUID) (collection.Collection, error)
@@ -45,7 +47,7 @@ func (u *UseCase) CreateCollection(ctx context.Context, c collection.Collection)
 	return u.otlp.CreateCollection(ctx, c)
 }
 
-func (u *UseCase) AddImageToCollection(ctx context.Context, c collection.Collection, img entities.Image) error {
+func (u *UseCase) AddImageToCollection(ctx context.Context, img entities.Image, isPreview bool) error {
 	err := u.otlp.AddImageToCollection(ctx, img)
 	if err != nil {
 		return fmt.Errorf("otlp: add image to collection: %w", err)
@@ -53,6 +55,13 @@ func (u *UseCase) AddImageToCollection(ctx context.Context, c collection.Collect
 	err = u.s3.SaveImageByName(ctx, entities.ImageName(img.CollectionID, img.ID), img.ImageData, img.ContentType)
 	if err != nil {
 		return fmt.Errorf("save image by name: %w", err)
+	}
+
+	if isPreview {
+		err = u.otlp.AddImageToPreview(ctx, img)
+		if err != nil {
+			return fmt.Errorf("add image to preview: %w", err)
+		}
 	}
 	return nil
 }
@@ -121,4 +130,8 @@ func (u *UseCase) GetImageByID(
 	img.ContentType = contentType
 
 	return img, nil
+}
+
+func (u *UseCase) GetCollections(ctx context.Context) (collectionDto.GetCollectionWithPreview, error) {
+	return u.otlp.GetCollections(ctx)
 }

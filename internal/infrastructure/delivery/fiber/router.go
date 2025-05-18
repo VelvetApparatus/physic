@@ -39,11 +39,13 @@ func (r *Router) MapRoutes(
 	userGroup.Post("/login", r.Login())
 	collectionGroup.Post("/create", authedMiddleware, isAdminMiddleware, r.CreateCollection())
 	collectionGroup.Post("/attach", authedMiddleware, isAdminMiddleware, r.AttachImageToCollection())
+	collectionGroup.Post("/delete", authedMiddleware, isAdminMiddleware, r.DeleteCollection())
 
 	// queries
 	userGroup.Get("/me", authedMiddleware, r.GetMe())
-	collectionGroup.Post("/ids", r.GetImageIDsByCollectionID())
-	collectionGroup.Post("/image", r.GetImageByID())
+	collectionGroup.Get("/ids", r.GetCollections())
+	collectionGroup.Post("/image/ids", r.GetImageIDsByCollectionID())
+	collectionGroup.Post("/image/document", r.GetImageByID())
 
 }
 
@@ -75,9 +77,6 @@ func StartFiberRouter(lc fx.Lifecycle, router *Router) error {
 			addr := fmt.Sprintf("%s:%d", config.C().App.Host, config.C().App.Port)
 			fmt.Printf("Starting Fiber app on %s\n", addr)
 			go app.Listen(addr)
-			//if err != nil {
-			//	return fmt.Errorf("failed to start Fiber app: %w", err)
-			//}
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {

@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"log"
 	"physk/internal/domain/aggregates/collection"
+	collectionDto "physk/internal/domain/aggregates/collection/dto"
 	"physk/internal/domain/aggregates/collection/entities"
 	"physk/internal/domain/aggregates/user"
 	"physk/internal/infrastructure/db/storage"
@@ -67,8 +68,40 @@ WHERE c.id=$1`
 }
 
 func (p *pgImpl) DeleteCollection(ctx context.Context, collectionID uuid.UUID) error {
-	//TODO implement me
-	panic("implement me")
+	var (
+		query      = `UPDATE collection.collections SET deleted_at=now(), preview_image_id=null WHERE id=$1`
+		dropImages = `DELETE FROM collection.images WHERE collection_id=$1;`
+	)
+
+	tx, err := p.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+
+	defer tx.Rollback()
+
+	res, err := tx.ExecContext(ctx, query, collectionID)
+	if err != nil {
+		return fmt.Errorf("drop collection: %w", err)
+	}
+
+	v, _ := res.RowsAffected()
+
+	if v == 0 {
+		return storage.ErrorNotFound
+	}
+
+	_, err = tx.ExecContext(ctx, dropImages, collectionID)
+	if err != nil {
+		return fmt.Errorf("drop images: %w", err)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf("commit: %w", err)
+	}
+
+	return nil
 }
 
 func (p *pgImpl) GetImageIDsByCollectionID(ctx context.Context, collectionID uuid.UUID) ([]uuid.UUID, error) {
@@ -168,6 +201,53 @@ func (p *pgImpl) GetUserByID(ctx context.Context, userID uuid.UUID) (user.User, 
 	}
 
 	return usr, nil
+}
+
+func (p *pgImpl) GetCollections(ctx context.Context) (collectionDto.GetCollectionWithPreview, error) {
+	var (
+		query = `SELECT id, name, preview_image_id FROM collection.collections WHERE deleted_at IS NULL`
+		item  collectionDto.CollectionWithPreviewItem
+		res   collectionDto.GetCollectionWithPreview
+	)
+
+	rows, err := p.db.QueryContext(ctx, query)
+	if err != nil {
+		return collectionDto.GetCollectionWithPreview{}, fmt.Errorf("query: %w", err)
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		err = rows.Scan(&item.CollectionID, &item.Name, &item.PreviewID)
+		if err != nil {
+			return collectionDto.GetCollectionWithPreview{}, fmt.Errorf("scan: %w", err)
+		}
+
+		res.Items = append(res.Items, item)
+	}
+
+	return res, nil
+}
+
+func (p *pgImpl) AddImageToPreview(
+	ctx context.Context,
+	i entities.Image,
+) error {
+	var (
+		query = `UPDATE collection.collections SET preview_image_id=$1 WHERE id=$2`
+	)
+
+	result, err := p.db.ExecContext(ctx, query, i.ID, i.CollectionID)
+	if err != nil {
+		return fmt.Errorf("exec: %w", err)
+	}
+
+	v, _ := result.RowsAffected()
+	if v == 0 {
+		return storage.ErrorNotFound
+	}
+
+	return nil
 }
 
 var _ storage.Storage = (*pgImpl)(nil)

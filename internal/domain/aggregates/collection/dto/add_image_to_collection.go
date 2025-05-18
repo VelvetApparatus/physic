@@ -7,4 +7,5 @@ type AddImageToCollection struct {
 	Name         string
 	ContentType  string
 	Data         []byte
+	IsPreview    bool
 }

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/google/uuid"
 	"physk/internal/domain/aggregates/collection"
+	collectionDto "physk/internal/domain/aggregates/collection/dto"
 	"physk/internal/domain/aggregates/collection/entities"
 	"physk/internal/domain/aggregates/user"
 )
@@ -23,4 +24,9 @@ type Storage interface {
 	DeleteCollection(ctx context.Context, collectionID uuid.UUID) error
 	GetImageIDsByCollectionID(ctx context.Context, collectionID uuid.UUID) ([]uuid.UUID, error)
 	GetImageByID(ctx context.Context, imgID uuid.UUID) (entities.Image, error)
+	GetCollections(ctx context.Context) (collectionDto.GetCollectionWithPreview, error)
+	AddImageToPreview(
+		ctx context.Context,
+		i entities.Image,
+	) error
 }

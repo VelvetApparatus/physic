@@ -1,17 +1,15 @@
 package fiber
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"github.com/gofiber/fiber/v2"
+	"strconv"
 
 	"github.com/google/uuid"
 	"io"
 	"log/slog"
-	"mime/multipart"
-	"net/textproto"
 	"physk/internal/controller"
 	userErrors "physk/internal/domain/aggregates/user/errors"
 	"physk/internal/infrastructure/delivery/dto"
@@ -204,6 +202,17 @@ func (r *Router) AttachImageToCollection() fiber.Handler {
 			return fiberCtx.Status(fiber.StatusBadRequest).SendString("invalid image name")
 		}
 
+		var isPreview bool
+		isPreviewStr, ok := form.Value["is_preview"]
+		if !ok || len(isPreviewStr) != 1 {
+			isPreview = false
+		} else {
+			isPreview, err = strconv.ParseBool(isPreviewStr[0])
+			if err != nil {
+				isPreview = false
+			}
+		}
+
 		formFiles, ok := form.File["image"]
 		if !ok || len(formFiles) != 1 {
 			return fiberCtx.Status(fiber.StatusBadRequest).SendString("no image file")
@@ -238,6 +247,7 @@ func (r *Router) AttachImageToCollection() fiber.Handler {
 			Name:         name,
 			ContentType:  contentType,
 			Data:         bytes,
+			IsPreview:    isPreview,
 		}
 
 		imgID, err := r.ctrl.AddImageToCollection(ctx, request)
@@ -280,6 +290,12 @@ func (r *Router) GetImageIDsByCollectionID() fiber.Handler {
 
 		}
 
+		slog.LogAttrs(
+			ctx, slog.LevelInfo, "request",
+			slog.String("handler", "get image ids for collection"),
+			slog.String("collection_id", request.CollectionID.String()),
+		)
+
 		ids, err := r.ctrl.GetImageIDsByCollectionID(ctx, request.CollectionID)
 		if err != nil {
 			slog.LogAttrs(
@@ -309,6 +325,7 @@ func (r *Router) GetImageByID() fiber.Handler {
 			slog.LogAttrs(
 				ctx, slog.LevelError, "body-parser",
 				slog.String("handler", "get-image-by-id"),
+				slog.String("body", string(fiberCtx.Body())),
 				slog.String("error", err.Error()),
 			)
 
@@ -324,39 +341,65 @@ func (r *Router) GetImageByID() fiber.Handler {
 			}
 		}
 
-		buf := new(bytes.Buffer)
-		writer := multipart.NewWriter(buf)
-		defer writer.Close()
+		fiberCtx.Set(fiber.HeaderContentType, img.ContentType)
+		return fiberCtx.Send(img.ImageData)
+	}
+}
 
-		h := make(textproto.MIMEHeader)
+func (r *Router) GetCollections() fiber.Handler {
+	return func(fiberCtx *fiber.Ctx) error {
+		ctx, cancel := context.WithCancel(fiberCtx.Context())
+		defer cancel()
 
-		h.Set("Content-Disposition",
-			fmt.Sprintf(`form-data; name="%s"; filename="%s"`,
-				img.Name, img.Name))
-
-		h.Set("Content-Type", img.ContentType)
-
-		part, err := writer.CreatePart(h)
+		collections, err := r.ctrl.GetCollections(ctx)
 		if err != nil {
-			slog.LogAttrs(
-				ctx, slog.LevelError, "create part",
-				slog.String("error", err.Error()),
-			)
 			return fiberCtx.SendStatus(fiber.StatusInternalServerError)
-
-		}
-		_, err = part.Write(img.ImageData)
-		if err != nil {
-			slog.LogAttrs(
-				ctx, slog.LevelError, "write file",
-				slog.String("error", err.Error()),
-			)
-			return fiberCtx.SendStatus(fiber.StatusInternalServerError)
-
 		}
 
-		fiberCtx.Set(fiber.HeaderContentType, writer.FormDataContentType())
+		response := dto.GetCollections{}
 
-		return fiberCtx.Send(buf.Bytes())
+		for _, colItem := range collections.Items {
+			response.Items = append(response.Items, dto.GetCollectionItem{
+				CollectionID:   colItem.CollectionID,
+				PreviewImageID: colItem.PreviewID,
+				CollectionName: colItem.Name,
+			})
+		}
+
+		return fiberCtx.JSON(response)
+	}
+}
+
+func (r *Router) DeleteCollection() fiber.Handler {
+	return func(fiberCtx *fiber.Ctx) error {
+		ctx, cancel := context.WithCancel(fiberCtx.Context())
+		defer cancel()
+
+		request := dto.DeleteCollectionRequest{}
+
+		err := fiberCtx.BodyParser(&request)
+		if err != nil {
+			slog.LogAttrs(
+				ctx, slog.LevelError, "body-parser",
+				slog.String("handler", "delete_collection"),
+				slog.String("error", err.Error()),
+				slog.String("body", string(fiberCtx.Body())),
+			)
+
+			return fiberCtx.Status(fiber.StatusBadRequest).SendString(err.Error())
+		}
+
+		err = r.ctrl.DeleteCollection(ctx, request)
+		if err != nil {
+			slog.LogAttrs(
+				ctx, slog.LevelError, "delete collection",
+				slog.String("error", err.Error()),
+				slog.String("collectionID", request.CollectionID.String()),
+			)
+
+			return fiberCtx.SendStatus(fiber.StatusInternalServerError)
+		}
+
+		return fiberCtx.SendStatus(fiber.StatusOK)
 	}
 }

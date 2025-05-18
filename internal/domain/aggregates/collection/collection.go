@@ -9,10 +9,11 @@ import (
 )
 
 type Collection struct {
-	ID        uuid.UUID
-	Name      string
-	Images    []entities.Image
-	CreatedAt time.Time
+	ID             uuid.UUID
+	Name           string
+	Images         []entities.Image
+	CreatedAt      time.Time
+	ImagePreviewID uuid.UUID
 }
 
 func NewCollection(dto collectionDto.CreateCollection) Collection {
@@ -23,11 +24,17 @@ func NewCollection(dto collectionDto.CreateCollection) Collection {
 	}
 }
 
-func (c *Collection) AddImage(img entities.Image) error {
+func (c *Collection) AddImage(
+	img entities.Image,
+	onPreview bool,
+) error {
 	if img.CollectionID != c.ID {
 		return collectionErrors.CollectionIDNotEqualError
 	}
 	c.Images = append(c.Images, img)
 
+	if onPreview {
+		c.ImagePreviewID = img.ID
+	}
 	return nil
 }

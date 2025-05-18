@@ -104,12 +104,12 @@ func (c *Controller) AddImageToCollection(
 		ImageData:    dto.Data,
 	}
 
-	err = collectionAgg.AddImage(imgEntity)
+	err = collectionAgg.AddImage(imgEntity, request.IsPreview)
 	if err != nil {
 		return uuid.UUID{}, fmt.Errorf("collection aggregate: add image: %w", err)
 	}
 
-	err = c.write.AddImageToCollection(ctx, collectionAgg, imgEntity)
+	err = c.write.AddImageToCollection(ctx, imgEntity, request.IsPreview)
 	if err != nil {
 		return uuid.UUID{}, fmt.Errorf("write model: add image to collection: %w", err)
 	}

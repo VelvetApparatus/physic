@@ -71,6 +71,7 @@ type AddImageToCollectionRequest struct {
 	Name         string
 	ContentType  string
 	Data         []byte
+	IsPreview    bool
 }
 
 func (a *AddImageToCollectionRequest) ToAggregateDTO() collectionDto.AddImageToCollection {
@@ -79,6 +80,7 @@ func (a *AddImageToCollectionRequest) ToAggregateDTO() collectionDto.AddImageToC
 		Name:         a.Name,
 		ContentType:  a.ContentType,
 		Data:         a.Data,
+		IsPreview:    a.IsPreview,
 	}
 }
 
@@ -104,4 +106,14 @@ type GetImagesIDsByCollectionIDResponse struct {
 
 type GetImageByID struct {
 	ID uuid.UUID `json:"id"`
+}
+
+type GetCollections struct {
+	Items []GetCollectionItem `json:"items"`
+}
+
+type GetCollectionItem struct {
+	CollectionID   uuid.UUID `json:"collection_id"`
+	PreviewImageID uuid.UUID `json:"preview_image_id"`
+	CollectionName string    `json:"collection_name"`
 }

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
+	collectionDto "physk/internal/domain/aggregates/collection/dto"
 	"physk/internal/domain/aggregates/collection/entities"
 	"physk/internal/domain/aggregates/user"
 	"physk/internal/infrastructure/db/storage"
@@ -48,4 +49,14 @@ func (c *Controller) GetImageIDsByCollectionID(
 		return nil, fmt.Errorf("get image ids by collection id: %w", err)
 	}
 	return ids, nil
+}
+
+func (c *Controller) GetCollections(
+	ctx context.Context,
+) (collectionDto.GetCollectionWithPreview, error) {
+	collectoins, err := c.read.GetCollections(ctx)
+	if err != nil {
+		return collectionDto.GetCollectionWithPreview{}, fmt.Errorf("get collections: %w", err)
+	}
+	return collectoins, nil
 }
