@@ -55,6 +55,7 @@ func StartFiberRouter(lc fx.Lifecycle, router *Router) error {
 			ReadTimeout:  time.Second * 10,
 			WriteTimeout: time.Second * 15,
 			IdleTimeout:  time.Minute,
+			BodyLimit:    50 * 1024 * 1024,
 		},
 	)
 
@@ -64,9 +65,10 @@ func StartFiberRouter(lc fx.Lifecycle, router *Router) error {
 	app.Use(fiberRecover.New(recoverConfig))
 
 	app.Use(cors.New(cors.Config{
-		AllowOrigins:     "http://localhost:3000,http://127.0.0.1:3000",
+		AllowOrigins:     "http://localhost:3000, http://127.0.0.1:3000",
 		AllowCredentials: true,
-		AllowMethods:     "GET,POST,HEAD,PUT,DELETE,PATCH,OPTIONS",
+		AllowMethods:     "GET, POST, HEAD, PUT, DELETE, PATCH, OPTIONS",
+		AllowHeaders:     "Content-Type, Authorization",
 	}))
 
 	v1Group := app.Group("api/v1")
